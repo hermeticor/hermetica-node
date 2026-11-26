@@ -50,7 +50,7 @@ export const WATCHTOWER_TOPICS = ['connection.health_changed', 'domain.verificat
  */
 export const WebhookPresetInput = z.object({ kind: z.literal('watchtower'), ingestKey: z.string().trim().min(8).max(256), environment: z.string().trim().min(1).max(64) });
 export const WebhookPreset = WebhookPresetInput.omit({ ingestKey: true });
-export const CreateWebhookEndpoint = z.object({ preset: WebhookPresetInput.optional(), url: Url, topics: Topics, secret: WebhookSigningSecret.optional(), description: z.string().max(500).optional(), filters: Scope.filters.optional(), listIds: Scope.listIds.optional(), sources: Scope.sources.optional(), sequenceIds: Scope.sequenceIds.optional(), bodyTemplate: Delivery.bodyTemplate.optional(), authHeaders: Delivery.authHeaders.optional(), throttleSeconds: Delivery.throttleSeconds.optional(), throttleTopics: Delivery.throttleTopics.optional(), autoDisableAfter: Delivery.autoDisableAfter.optional(), retryWindowHours: Delivery.retryWindowHours.optional(), /** Product this endpoint belongs to: it only gets events attributed to that app (or not attributed to any). An app-bound key sets it for you. */ app: AppSlug.nullish(), /** `on_verify`: created disabled (nothing is delivered) until POST /v1/webhooks/endpoints/{id}/verify gets a 2xx from your receiver. */ activate: z.enum(['now', 'on_verify']).optional() });
+export const CreateWebhookEndpoint = z.object({ preset: WebhookPresetInput.optional(), url: Url, topics: Topics, secret: WebhookSigningSecret.optional(), description: z.string().max(500).optional(), filters: Scope.filters.optional(), listIds: Scope.listIds.optional(), sources: Scope.sources.optional(), sequenceIds: Scope.sequenceIds.optional(), bodyTemplate: Delivery.bodyTemplate.optional(), authHeaders: Delivery.authHeaders.optional(), throttleSeconds: Delivery.throttleSeconds.optional(), throttleTopics: Delivery.throttleTopics.optional(), autoDisableAfter: Delivery.autoDisableAfter.optional(), retryWindowHours: Delivery.retryWindowHours.optional(), /** Product this endpoint belongs to: it only gets events attributed to that app (or not attributed to any). An app-bound key sets it for you. */ app: AppSlug.nullish(), /** `on_verify`: created disabled (nothing is delivered) until POST /v1/webhooks/endpoints/{id}/verify gets a 2xx from your receiver. */ activate: z.enum(['now', 'on_verify']).optional(), includeSubaccounts: z.boolean().optional() });
 export const UpdateWebhookEndpoint = z.object({
   url: Url.optional(),
   topics: Topics.optional(),
@@ -61,6 +61,7 @@ export const UpdateWebhookEndpoint = z.object({
   /** Re-enabling resets the failure counter. */
   status: z.enum(['active', 'disabled']).optional(),
   app: AppSlug.nullable().optional(),
+  includeSubaccounts: z.boolean().optional(),
 });
 
 export const WebhookEndpointDto = z.object({
@@ -77,6 +78,8 @@ export const WebhookEndpointDto = z.object({
   status: z.enum(['active', 'disabled']),
   app: z.string().nullable().optional(),
   preset: WebhookPreset.nullable().optional(),
+  /** A parent's endpoint also gets its sub-accounts' events (matching its topics, app and filters), each envelope carrying `subaccountId` and `subaccountExternalId`. */
+  includeSubaccounts: z.boolean().default(false),
   consecutiveFailures: z.number().int(),
   createdAt: Timestamp,
   updatedAt: Timestamp,
