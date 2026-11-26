@@ -94,6 +94,8 @@ export type ReviewDeadline = z.infer<typeof ReviewDeadline>;
 
 /** D-SEND-3: a campaign (and every newsletter send, which is a campaign) is bulk mail, so it is never transactional/operational. */
 export const CampaignPurpose = z.enum(['marketing', 'prospecting']);
+export const CampaignMergeLanguage = z.enum(['liquid', 'none']);
+export const CampaignQuietHours = z.enum(['defer', 'reject']);
 
 export const CreateCampaignBody = z.object({
   name: z.string().trim().min(1).max(200),
@@ -122,6 +124,14 @@ export const CreateCampaignBody = z.object({
   smartAudience: z.boolean().optional(),
   /** Product (app slug) that owns the campaign; an app-bound API key stamps its own. Its messages carry `app:<slug>`, so webhook endpoints of other apps skip their events. */
   app: AppSlug.nullish(),
+  /** none: subject and body are sent exactly as written (user-generated content), no Liquid. Default liquid. */
+  mergeLanguage: CampaignMergeLanguage.optional(),
+  /** auto: always append the compliant footer (unsubscribe link + postal address) after rendering, even when the body prints its own link. */
+  footer: z.literal('auto').nullish(),
+  /** SMS, auto: append "Reply STOP to opt out." unless the text already says "Reply STOP". Without it, only texts that never mention stop/opt out get it. */
+  optOutFooter: z.literal('auto').nullish(),
+  /** defer (default): a send that falls in quiet hours waits for the next allowed time. reject: it is blocked with reason quiet_hours. */
+  quietHours: CampaignQuietHours.optional(),
 });
 export type CreateCampaignBody = z.input<typeof CreateCampaignBody>;
 
@@ -147,6 +157,10 @@ export const UpdateCampaignBody = z.object({
   smartAudience: z.boolean().optional(),
   /** Move the campaign to another product (app slug), or null to share it. App-bound keys cannot. */
   app: AppSlug.nullable().optional(),
+  mergeLanguage: CampaignMergeLanguage.optional(),
+  footer: z.literal('auto').nullish(),
+  optOutFooter: z.literal('auto').nullish(),
+  quietHours: CampaignQuietHours.optional(),
 });
 
 /** Planning details, editable at any status. Dates are calendar days; the campaign's real send time is its schedule. */
@@ -208,6 +222,10 @@ export const CampaignDto = z.object({
   failureReason: z.string().nullish(),
   smartAudience: z.boolean().optional(),
   app: z.string().nullable().optional(),
+  mergeLanguage: CampaignMergeLanguage.optional(),
+  footer: z.literal('auto').nullish(),
+  optOutFooter: z.literal('auto').nullish(),
+  quietHours: CampaignQuietHours.optional(),
   createdAt: Timestamp,
   updatedAt: Timestamp,
 });

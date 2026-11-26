@@ -30,6 +30,7 @@ export const WorkspaceDto = z.object({
   websiteUrl: z.string().nullable().optional(),
   industry: z.string().nullable().optional(),
   predictedGenderEnabled: z.boolean().optional(),
+  predictedGenderExcludedApps: z.array(z.string()).optional(),
 });
 export const INDUSTRIES = ['ecommerce', 'saas', 'agency', 'media', 'education', 'nonprofit', 'finance', 'health', 'travel', 'real_estate', 'b2b_services', 'other'] as const;
 export const Currency = z.string().regex(/^[A-Z]{3}$/, 'Use a 3-letter currency code such as USD');
@@ -57,6 +58,11 @@ export const WorkspacePatch = z.object({
   industry: z.enum(INDUSTRIES).nullable().optional(),
   /** Infer gender from first names (`GET /v1/profiles/{id}/predicted-gender`, segments, templates). Off by default: it is an inference that needs its own lawful basis. */
   predictedGenderEnabled: z.boolean().optional(),
+  /**
+   * App slugs whose contacts get no predicted gender: a contact known only to these apps has none (404, empty in templates, unmatched in
+   * segments, never computed). A key bound to an app may only add or remove its own app.
+   */
+  predictedGenderExcludedApps: z.array(z.string().min(1).max(64)).max(100).optional(),
 });
 
 /** Dev-only sign-in (AUTH_DEV_LOGIN, never production): tests and local dev without Atlas. */
@@ -70,7 +76,7 @@ export const MeCanResult = z.object({
   scopes: z.array(z.string()), missing: z.array(z.string()), auth: z.string(), app: z.string().nullable(),
 });
 export const MeResult = z.object({
-  actor: z.object({ type: z.string(), id: z.string(), workspaceId: Id, role: Role.optional(), scopes: z.array(z.string()), /** API key bound to one product: it only sees that app's topics, lists, segments, fields and webhooks. */ app: z.string().nullable().optional() }),
+  actor: z.object({ type: z.string(), id: z.string(), workspaceId: Id, role: Role.optional(), scopes: z.array(z.string()), /** API key bound to one product: it only sees that app's topics, lists, segments, fields and webhooks. */ app: z.string().nullable().optional(), /** Acting as a sub-account (Hermeticor-Subaccount header): the parent workspace. */ subaccountOf: Id.optional() }),
   user: UserDto.nullable(),
   workspaces: z.array(z.object({ id: Id, name: z.string(), role: Role })),
   /** Set while an owner is viewing the app as this user. */

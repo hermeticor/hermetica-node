@@ -132,6 +132,12 @@ export const SendRequest = z.object({
   listId: Id.optional(),
   /** Set by the server only, on test sends to the operator's own seed addresses: skips quiet hours (consent, suppression and caps still apply). */
   testSend: z.boolean().optional(),
+  /** Marketing/prospecting email: auto = always append the unsubscribe + postal address footer, even when the body prints its own link. */
+  footer: z.literal('auto').optional(),
+  /** SMS outreach: auto = append "Reply STOP to opt out." unless the text already says "Reply STOP". */
+  optOutFooter: z.literal('auto').optional(),
+  /** reject = a send that falls in quiet hours is blocked (reason quiet_hours) instead of deferred. */
+  quietHours: z.enum(['defer', 'reject']).optional(),
 }).refine((r) => (r.channel === 'postcard' ? !!r.postcard && !r.templateId && !r.inline : Boolean(r.templateId) !== Boolean(r.inline)), { message: 'Provide exactly one of templateId or inline (postcards: the postcard design only)' })
   .refine((r) => Boolean(r.route.connectionId || r.route.poolId || r.route.routePolicyId), { message: 'No route: pick a sending connection, pool or route policy (route.connectionId, route.poolId or route.routePolicyId)', path: ['route'] });
 export type SendRequest = z.infer<typeof SendRequest>;

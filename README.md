@@ -12,12 +12,14 @@ await hm.profiles.forgetApp({ externalId: 'user_123' }); // the person left this
 No schema library at all (fetch only, plain types; reads HERMETICA_URL and HERMETICA_API_KEY or HERMETICA_KEY):
 
 ```ts
-import { track, forgetApp, sendRaw, identify, verifySignature } from '@hermeticor/sdk-node/lite';
+import { track, forgetApp, sendRaw, identify, transactional, verifySignature } from '@hermeticor/sdk-node/lite';
 
 await track({ name: 'signed_up', dedupeKey: `signup-${userId}`, profile: { externalId: userId, email } }); // creates or updates the person too
+await transactional.send({ to: [{ email }], templateId: 'tpl_welcome', vars: { firstName } }); // typed JSON send
+await sendRaw({ rawMime, to: [email], fromEmail: 'news@example.com', route: { connectionId } }); // a complete MIME message
 ```
 
-zod is an optional peer dependency, needed only for the full client's TypeScript types.
+zod is an optional peer dependency, needed only for the full client's TypeScript types; `/lite` never imports it, so apps on zod 3 (or none) can use it.
 
 Guides: https://hermeticor.com/guides/sdks. API reference: https://hermeticor.com/docs (spec at /openapi.json).
 

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Id, Timestamp } from './common.ts';
+import { AppSlug, Id, Timestamp } from './common.ts';
 
 // ---- webhook topic catalog ----
 export const WebhookTopicDto = z.object({
@@ -43,9 +43,9 @@ export const AccountExportDto = z.object({
 
 // ---- OAuth 2.0 (authorization code + PKCE S256) ----
 const RedirectUris = z.array(z.url().max(2048)).min(1).max(10);
-export const OAuthClientBody = z.object({ name: z.string().trim().min(1).max(100), redirectUris: RedirectUris, scopes: z.array(z.string().min(1).max(60)).min(1).max(60), /** SPA/CLI client: no secret, PKCE only. */ public: z.boolean().default(false) });
+export const OAuthClientBody = z.object({ name: z.string().trim().min(1).max(100), redirectUris: RedirectUris, scopes: z.array(z.string().min(1).max(60)).min(1).max(60), /** SPA/CLI/extension/native client: no secret, PKCE only. */ public: z.boolean().default(false), /** The product its tokens are bound to; an app-bound key's own app by default. */ app: AppSlug.nullish() });
 export const OAuthClientDto = z.object({
-  id: Id, clientId: z.string(), name: z.string(), redirectUris: z.array(z.string()), scopes: z.array(z.string()), isPublic: z.boolean(), revokedAt: Timestamp.nullable(), createdAt: Timestamp,
+  id: Id, clientId: z.string(), name: z.string(), redirectUris: z.array(z.string()), scopes: z.array(z.string()), isPublic: z.boolean(), app: z.string().nullable(), revokedAt: Timestamp.nullable(), createdAt: Timestamp,
 });
 export const OAuthClientCreated = OAuthClientDto.extend({ clientSecret: z.string() });
 export const OAuthAuthorizeParams = z.object({

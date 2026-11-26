@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Timestamp } from './common.ts';
+import { AppSlug, Timestamp } from './common.ts';
 
 /** `profiles` is a gauge, not a counter: the month's peak of active profiles (the overage basis). */
 export const USAGE_METRICS = ['sends_email', 'sends_sms', 'sends_whatsapp', 'sends_push', 'sends_postcard', 'ai_tokens', 'profiles'] as const;
@@ -8,7 +8,7 @@ export type UsageMetric = z.infer<typeof UsageMetric>;
 
 /** null = unlimited. */
 const Limit = z.number().int().nonnegative().nullable();
-export const PlanLimits = z.object({ sends_email: Limit, sends_sms: Limit, sends_whatsapp: Limit, sends_push: Limit, sends_postcard: Limit, ai_tokens: Limit, seats: Limit, profiles: Limit, mailboxes: Limit });
+export const PlanLimits = z.object({ sends_email: Limit, sends_sms: Limit, sends_whatsapp: Limit, sends_push: Limit, sends_postcard: Limit, ai_tokens: Limit, seats: Limit, profiles: Limit, mailboxes: Limit, subaccounts: Limit });
 export type PlanLimits = z.infer<typeof PlanLimits>;
 
 /** `limits` are hard caps; `includedProfiles` is the band a paid plan bills overage past (null = no band). */
@@ -36,3 +36,15 @@ export const MyReferralDto = z.object({ enabled: z.boolean(), code: z.string().n
 export const PayoutAccountDto = z.object({ configured: z.boolean(), started: z.boolean(), payoutsEnabled: z.boolean(), detailsSubmitted: z.boolean() });
 /** `country` (ISO code) of the writer's payout account, asked before the account exists; another country than the platform's gets Stripe's recipient agreement. */
 export const PayoutOnboardBody = z.object({ returnUrl: z.url(), country: z.string().trim().length(2).toUpperCase().optional() });
+
+/** Per-product send usage in a workspace shared by several products (`app:<slug>` sends). */
+export const AppUsageQuery = z.object({ period: z.string().regex(/^\d{4}-\d{2}$/).optional().describe('YYYY-MM (UTC); default this month') });
+export const AppUsageDto = z.object({
+  period: z.string(),
+  items: z.array(z.object({ app: z.string(), metric: z.string(), used: z.number().int(), limit: z.number().int().nullable().describe("The product's own monthly cap; null = only the workspace plan applies") })),
+});
+const AppCap = z.number().int().min(0).max(100_000_000).nullable().optional();
+export const AppLimitsBody = z.object({ sends_email: AppCap, sends_sms: AppCap, sends_push: AppCap, sends_whatsapp: AppCap })
+  .describe('Monthly caps on this product\'s marketing and prospecting sends; null removes a cap. Transactional and operational mail is never capped');
+export const AppLimitsParams = z.object({ app: AppSlug });
+

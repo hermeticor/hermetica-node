@@ -7,7 +7,8 @@ export type LegalBasis = z.infer<typeof LegalBasis>;
 export const ConsentSource = z.enum(['form', 'import', 'api', 'sms_keyword', 'preference_center', 'admin', 'double_opt_in', 'instagram_dm', 'facebook_dm', 'cookiemunch']);
 export const RevocationScope = z.enum(['topic', 'channel', 'all']);
 export const SuppressionReason = z.enum(['unsubscribe', 'hard_bounce', 'complaint', 'stop_keyword', 'manual', 'invalid', 'dnc']);
-export const SuppressionScope = z.enum(['global', 'topic', 'purpose']);
+/** `app`: one product's mail in a workspace shared by several products (its tags `app:<slug>` or its topic's app). */
+export const SuppressionScope = z.enum(['global', 'topic', 'purpose', 'app']);
 export const BlockReason = z.enum([
   'suppressed',
   'no_consent',
@@ -83,14 +84,18 @@ export const TopicInput = z.object({
   description: z.string().max(1000).nullish(),
   defaultOptIn: z.boolean().default(false),
   visibleInPreferenceCenter: z.boolean().default(true),
+  /** Marketing email on this topic needs a recorded opt-in even when the workspace allows soft opt-in (tightens, never loosens). An app-bound key sets it on its own topics. */
+  requireOptIn: z.boolean().default(false),
   groupId: Id.nullish(),
   position: z.number().int().min(0).max(10_000).optional(),
   /** Product that owns the topic (null = shared). Keys stay workspace-unique, so still prefix them across products. */
   app: AppSlug.nullish(),
+  /** False keeps the topic out of partner sync (Cookie Munch): never sent there, never set from there. For per-creator or product-private topics. */
+  partnerSync: z.boolean().default(true),
 });
 export type TopicInput = z.input<typeof TopicInput>;
 // Without defaults: zod 4 `.partial()` keeps them, so patching only the name would flip defaultOptIn back to false.
-export const TopicPatch = TopicInput.omit({ channel: true, key: true }).extend({ defaultOptIn: z.boolean().optional(), visibleInPreferenceCenter: z.boolean().optional() }).partial();
+export const TopicPatch = TopicInput.omit({ channel: true, key: true }).extend({ defaultOptIn: z.boolean().optional(), visibleInPreferenceCenter: z.boolean().optional(), requireOptIn: z.boolean().optional(), partnerSync: z.boolean().optional() }).partial();
 export type TopicPatch = z.infer<typeof TopicPatch>;
 export const TopicDto = z.object({
   id: Id,
@@ -100,9 +105,11 @@ export const TopicDto = z.object({
   description: z.string().nullable(),
   defaultOptIn: z.boolean(),
   visibleInPreferenceCenter: z.boolean(),
+  requireOptIn: z.boolean().optional(),
   groupId: Id.nullable().optional(),
   position: z.number().int().optional(),
   app: z.string().nullable().optional(),
+  partnerSync: z.boolean().optional(),
   createdAt: Timestamp,
   archivedAt: Timestamp.nullable().optional(),
   /** With ?counts=true: people with granted consent on this topic. */
@@ -125,6 +132,8 @@ export const SuppressionInput = z.object({
   scope: SuppressionScope.default('global'),
   topicId: Id.nullish(),
   purpose: Purpose.nullish(),
+  /** Product slug, required for scope `app`. */
+  app: z.string().min(1).max(64).nullish(),
   reason: SuppressionReason,
   sourceRef: z.string().max(256).nullish(),
 });
@@ -136,6 +145,7 @@ export const SuppressionDto = z.object({
   scope: SuppressionScope,
   topicId: Id.nullable(),
   purpose: Purpose.nullable(),
+  app: z.string().nullable(),
   reason: SuppressionReason,
   sourceRef: z.string().nullable(),
   liftedAt: Timestamp.nullable(),
@@ -172,6 +182,8 @@ export const EligibilityRequest = z.object({
   recipientCountry: z.string().length(2).optional(),
   /** Outbound sequence the send belongs to: a legitimate-interest assessment scoped to it may lift a jurisdiction block. */
   sequenceId: Id.optional(),
+  /** Product the send belongs to (its `app:` tag); defaults to the topic's app. App-scoped suppressions block only that product's mail. */
+  app: z.string().max(64).optional(),
 });
 export type EligibilityRequest = z.infer<typeof EligibilityRequest>;
 /** `liaId`: the legitimate-interest assessment that lifted this prospecting send's jurisdiction block. */

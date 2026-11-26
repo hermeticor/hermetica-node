@@ -32,6 +32,8 @@ export const TemplateVersionInput = z.object({
   ampHtml: z.string().max(200_000).nullable().optional(),
   /** SMS only: an RCS card and suggestion chips; the text body is the SMS fallback. */
   rcs: RcsContent.nullable().optional(),
+  /** none: subject and body are sent exactly as written (no Liquid, not parsed at save), for user-generated content. Default liquid. */
+  mergeLanguage: z.enum(['liquid', 'none']).optional(),
 });
 export type TemplateVersionInput = z.infer<typeof TemplateVersionInput>;
 
@@ -41,7 +43,7 @@ export const TemplateVersionDto = z.object({
   approvalStatus: z.enum(['none', 'pending', 'approved', 'rejected']), reviewComment: z.string().nullable(),
   createdBy: z.string().nullable(), createdAt: Timestamp, approvedBy: z.string().nullable(), approvedAt: Timestamp.nullable(),
   fromEmail: z.string().nullable().default(null), replyTo: z.string().nullable().default(null), cc: z.array(z.string()).default([]),
-  ampHtml: z.string().nullable().default(null), rcs: RcsContent.nullable().default(null),
+  ampHtml: z.string().nullable().default(null), rcs: RcsContent.nullable().default(null), mergeLanguage: z.enum(['liquid', 'none']).default('liquid'),
   /** Set when a reviewer confirmed this version is transactional despite offer wording (POST .../transactional-review). */
   transactionalReviewedBy: z.string().nullable().default(null), transactionalReviewedAt: Timestamp.nullable().default(null),
 });
